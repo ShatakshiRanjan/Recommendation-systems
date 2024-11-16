@@ -1,4 +1,5 @@
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 # File paths (adjust these paths as needed)
 links_file_path = 'ml-latest-small/links.csv'
@@ -12,16 +13,34 @@ movies_df = pd.read_csv(movies_file_path)
 ratings_df = pd.read_csv(ratings_file_path)
 tags_df = pd.read_csv(tags_file_path)
 
-# Display the first few rows of each DataFrame (optional)
-print("Links Data:")
-print(links_df.head())
+# Function to split each user's data
+def split_user_ratings(user_data):
+    train, test = train_test_split(user_data, test_size=0.2, random_state=42)
+    return train, test
 
-print("\nMovies Data:")
-print(movies_df.head())
+# Group data by 'userId' and split ratings
+train_list = []
+test_list = []
 
-print("\nRatings Data:")
-print(ratings_df.head())
+for _, user_data in ratings_df.groupby('userId'):
+    train, test = split_user_ratings(user_data)
+    train_list.append(train)
+    test_list.append(test)
 
-print("\nTags Data:")
-print(tags_df.head())
+# Combine all train and test splits
+train_df = pd.concat(train_list)
+test_df = pd.concat(test_list)
+
+# Reset indices
+train_df = train_df.reset_index(drop=True)
+test_df = test_df.reset_index(drop=True)
+
+print("Training Dataset:\n", train_df.head())
+print("Testing Dataset:\n", test_df.head())
+
+print(f"Total Ratings: {len(ratings_df)}")
+print(f"Training Ratings: {len(train_df)} ({len(train_df) / len(ratings_df) * 100:.2f}%)")
+print(f"Testing Ratings: {len(test_df)} ({len(test_df) / len(ratings_df) * 100:.2f}%)")
+
+
 
