@@ -1,22 +1,27 @@
-import zipfile
 import pandas as pd
 
-# Correct path to the zip file (use raw string to handle backslashes in Windows)
-zip_file_path = r'ml-latest-small.zip'  # Ensure this path points to the actual .zip file
+# File paths (adjust these paths as needed)
+links_file_path = 'ml-latest-small/links.csv'
+movies_file_path = 'ml-latest-small/movies.csv'
+ratings_file_path = 'ml-latest-small/ratings.csv'
+tags_file_path = 'ml-latest-small/tags.csv'
 
-# Open the .zip file
-with zipfile.ZipFile(zip_file_path, 'r') as z:
-    # List all files in the zip archive
-    print("Files in the zip archive:")
-    print(z.namelist())  # Check the file names inside the .zip archive
-    
-    # Read specific files into pandas DataFrames
-    links_df = pd.read_csv(z.open('links.csv'))
-    movies_df = pd.read_csv(z.open('movies.csv'))
-    ratings_df = pd.read_csv(z.open('ratings.csv'))
-    tags_df = pd.read_csv(z.open('tags.csv'))
+# Load CSV files into pandas DataFrames
+links_df = pd.read_csv(links_file_path)
+movies_df = pd.read_csv(movies_file_path)
+ratings_df = pd.read_csv(ratings_file_path)
+tags_df = pd.read_csv(tags_file_path)
 
-# Display the first few rows of one DataFrame (optional)
-print("Links:")
+# Display the first few rows of each DataFrame (optional)
+print("Links Data:")
 print(links_df.head())
+
+print("\nMovies Data:")
+print(movies_df.head())
+
+print("\nRatings Data:")
+print(ratings_df.head())
+
+print("\nTags Data:")
+print(tags_df.head())
 
