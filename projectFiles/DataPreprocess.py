@@ -2,10 +2,10 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 # File paths (adjust these paths as needed)
-links_file_path = 'ml-latest-small/links.csv'
-movies_file_path = 'ml-latest-small/movies.csv'
-ratings_file_path = 'ml-latest-small/ratings.csv'
-tags_file_path = 'ml-latest-small/tags.csv'
+links_file_path = './ml-latest-small/links.csv'
+movies_file_path = './ml-latest-small/movies.csv'
+ratings_file_path = './ml-latest-small/ratings.csv'
+tags_file_path = './ml-latest-small/tags.csv'
 
 # Load CSV files into pandas DataFrames
 links_df = pd.read_csv(links_file_path)
