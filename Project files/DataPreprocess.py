@@ -2,25 +2,25 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 # File paths and Loading CSV files
-links_file_path = './ml-latest-small/links.csv'
-movies_file_path = './ml-latest-small/movies.csv'
-ratings_file_path = './ml-latest-small/ratings.csv'
-tags_file_path = './ml-latest-small/tags.csv'
+linksCSV = './ml-latest-small/links.csv'
+moviesCSV = './ml-latest-small/movies.csv'
+ratingsCSV = './ml-latest-small/ratings.csv'
+tagsCSV = './ml-latest-small/tags.csv'
 
-links_df = pd.read_csv(links_file_path)
-movies_df = pd.read_csv(movies_file_path)
-ratings_df = pd.read_csv(ratings_file_path)
-tags_df = pd.read_csv(tags_file_path)
+link = pd.read_csv(linksCSV)
+movie = pd.read_csv(moviesCSV)
+ratings = pd.read_csv(ratingsCSV)
+tags = pd.read_csv(tagsCSV)
 
 # Merge movies and ratings datasets
-ratings_with_movies = pd.merge(ratings_df, movies_df, on='movieId', how='left')
+ratings_with_movies = pd.merge(ratings, movie, on='movieId', how='left')
 
 # Merge tags dataset (optional)
-tags_aggregated = tags_df.groupby('movieId')['tag'].apply(lambda x: ' '.join(x)).reset_index()
+tags_aggregated = tags.groupby('movieId')['tag'].apply(lambda x: ' '.join(x)).reset_index()
 ratings_with_tags = pd.merge(ratings_with_movies, tags_aggregated, on='movieId', how='left')
 
 # Enrich with IMDb links
-ratings_enriched = pd.merge(ratings_with_tags, links_df[['movieId', 'imdbId']], on='movieId', how='left')
+ratings_enriched = pd.merge(ratings_with_tags, link[['movieId', 'imdbId']], on='movieId', how='left')
 
 # Split genres into binary columns
 genres_split = ratings_enriched['genres'].str.get_dummies(sep='|')
