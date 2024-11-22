@@ -18,6 +18,10 @@ def pearson_similarity(matrix):
     matrix = np.nan_to_num(matrix)  # Handle NaN values
     mean_centered = matrix - matrix.mean(axis=0, keepdims=True)
     norm_matrix = np.linalg.norm(mean_centered, axis=0)
+    
+    # Avoid division by zero
+    norm_matrix[norm_matrix == 0] = 1
+    
     similarity = np.dot(mean_centered.T, mean_centered) / (norm_matrix[:, None] * norm_matrix[None, :])
     np.fill_diagonal(similarity, 0)  # No self-similarity
     return similarity
@@ -69,7 +73,7 @@ def evaluate_predictions(test_df, predicted_ratings_df):
         actuals.append(actual)
     
     mae = mean_absolute_error(actuals, predictions)
-    rmse = mean_squared_error(actuals, predictions, squared=False)
+    rmse = np.sqrt(mean_squared_error(actuals, predictions))  # Replace squared=False
     return mae, rmse
 
 # Calculate MAE and RMSE
