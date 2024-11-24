@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
+# Load training and testing data
 train_df = pd.read_csv('trainData.csv')
 test_df = pd.read_csv('testData.csv')
 user_item_matrix = train_df.pivot_table(index='userId', columns='movieId', values='rating')
@@ -9,15 +10,18 @@ user_item_matrix = train_df.pivot_table(index='userId', columns='movieId', value
 # --------------------------------------------------------------------------------
 # Collaborative Filtering (Item-Item Similarity)
 # --------------------------------------------------------------------------------
-def compute_item_similarity(user_item_matrix):
+def compute_item_similarity(user_item_matrix, similarity_threshold=0.1):
+    """
+    Compute item-item similarity using cosine similarity and apply a threshold.
+    """
     matrix = user_item_matrix.fillna(0).values  # Replace NaN with 0 for similarity computation
     similarity = cosine_similarity(matrix.T)  # Compute similarity between items
     np.fill_diagonal(similarity, 0)  # Avoid self-similarity
+    similarity[similarity < similarity_threshold] = 0  # Apply threshold
     return pd.DataFrame(similarity, index=user_item_matrix.columns, columns=user_item_matrix.columns)
 
-item_similarity = compute_item_similarity(user_item_matrix)
+item_similarity = compute_item_similarity(user_item_matrix, similarity_threshold=0.2)
 
-# Predict ratings using item similarity
 def predict_ratings_collaborative(user_item_matrix, item_similarity):
     """
     Predict ratings using collaborative filtering.
@@ -36,7 +40,6 @@ collaborative_predictions = predict_ratings_collaborative(user_item_matrix, item
 # --------------------------------------------------------------------------------
 user_mean_ratings = user_item_matrix.mean(axis=1)
 
-# Predict ratings using user-specific averages
 def predict_ratings_user_mean(user_item_matrix, user_mean_ratings):
     """
     Predict ratings using user-specific averages.
@@ -51,13 +54,13 @@ mean_predictions = predict_ratings_user_mean(user_item_matrix, user_mean_ratings
 # --------------------------------------------------------------------------------
 # Hybrid Predictions (Blend Collaborative & User Averages)
 # --------------------------------------------------------------------------------
-def predict_ratings_hybrid(collaborative_predictions, mean_predictions, alpha=0.5):
+def predict_ratings_hybrid(collaborative_predictions, mean_predictions, alpha=0.8, beta=0.2):
     """
     Blend collaborative filtering predictions with user-specific averages.
     """
-    return alpha * collaborative_predictions + (1 - alpha) * mean_predictions
+    return alpha * collaborative_predictions + beta * mean_predictions
 
-hybrid_predictions = predict_ratings_hybrid(collaborative_predictions, mean_predictions, alpha=0.5)
+hybrid_predictions = predict_ratings_hybrid(collaborative_predictions, mean_predictions, alpha=0.85, beta=0.15)
 
 # --------------------------------------------------------------------------------
 # Generate Top-N Recommendations
@@ -82,7 +85,9 @@ def create_recommendations(predicted_ratings_df, train_df, top_n=10):
 
 recommendations = create_recommendations(hybrid_predictions, train_df)
 
-
+# --------------------------------------------------------------------------------
+# Evaluate Recommendations
+# --------------------------------------------------------------------------------
 def evaluate_recommendations(recommendations, test_df, top_n=10):
     """
     Evaluate recommendations using Precision, Recall, and NDCG.
@@ -117,7 +122,14 @@ def evaluate_recommendations(recommendations, test_df, top_n=10):
 
     return avg_precision, avg_recall, avg_f_measure, avg_ndcg
 
+# --------------------------------------------------------------------------------
+# Evaluate the Recommendations
+# --------------------------------------------------------------------------------
 precision, recall, f_measure, ndcg = evaluate_recommendations(recommendations, test_df)
+
+# --------------------------------------------------------------------------------
+# Print Results
+# --------------------------------------------------------------------------------
 print(f"Precision: {precision:.4f}")
 print(f"Recall: {recall:.4f}")
 print(f"F-measure: {f_measure:.4f}")
