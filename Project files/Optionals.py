@@ -28,13 +28,39 @@ def create_recommendations(predicted_ratings_df, train_df, top_n=10):
         rated_items = train_df[train_df['userId'] == user]['movieId'].values
         unrated_items = [item for item in predicted_ratings_df.columns if item not in rated_items]
         predictions = predicted_ratings_df.loc[user, unrated_items]
-        top_items = predictions.nlargest(top_n).index.tolist()
-        recommendations[user] = top_items
+        if not predictions.empty:
+            top_items = predictions.nlargest(top_n).index.tolist()
+            recommendations[user] = top_items
+        else:
+            recommendations[user] = []
     return recommendations
 
 # Generate recommendations for the user
 predicted_ratings_matrix = user_item_matrix.fillna(0).dot(item_similarity)
 recommendations = create_recommendations(predicted_ratings_matrix, train_df)
+
+# Fairness: Genre Diversity
+def genre_diversity(recommendations, movies_df):
+    """
+    Calculate the genre diversity of the recommendations for each user.
+    """
+    diversity = {}
+    for user, recs in recommendations.items():
+        # Extract genres for recommended movies
+        genres = movies_df[movies_df['movieId'].isin(recs)]['genres'].dropna().str.split('|').explode()
+        diversity[user] = genres.value_counts().to_dict()  # Count occurrences of each genre
+    return diversity
+
+# Save genre diversity to a text file
+def save_genre_diversity_to_file(diversity, file_name="genre_diversity.txt"):
+    with open(file_name, "w") as file:
+        file.write("Genre Diversity of Recommendations:\n")
+        for user, genres in diversity.items():
+            file.write(f"User {user}:\n")
+            for genre, count in genres.items():
+                file.write(f"  {genre}: {count}\n")
+            file.write("\n")
+    print(f"Genre diversity has been saved to {file_name}.")
 
 # Explanation function
 def explain_recommendation(user_id, movie_id, train_df, item_similarity, movies_df):
@@ -64,7 +90,7 @@ def explain_recommendation(user_id, movie_id, train_df, item_similarity, movies_
                 "and your overall rating patterns.")
 
 # Filter recommendations by genre
-def filter_recommendations_by_genre(user_id, recommendations, genre_filter, train_df, movies_df):
+def filter_recommendations_by_genre(user_id, recommendations, genre_filter, movies_df):
     filtered_recommendations = []
     recommended_movies = recommendations.get(user_id, [])
     for movie_id in recommended_movies:
@@ -93,10 +119,15 @@ def main():
             explanation = explain_recommendation(user_id, movie_id, train_df, item_similarity, movies_df)
             print("\nExplanation:\n", explanation)
 
+        elif choice == "2":
+            # Compute genre diversity for the recommendations
+            diversity = genre_diversity(recommendations, movies_df)
+            save_genre_diversity_to_file(diversity)
+
         elif choice == "3":
             user_id = int(input("Enter user ID: "))
             genre_filter = input("Enter genre to filter (e.g., Comedy, Action): ").strip()
-            filtered_recs = filter_recommendations_by_genre(user_id, recommendations, genre_filter, train_df, movies_df)
+            filtered_recs = filter_recommendations_by_genre(user_id, recommendations, genre_filter, movies_df)
             if filtered_recs:
                 filtered_titles = movies_df[movies_df['movieId'].isin(filtered_recs)]['title'].tolist()
                 print(f"\nFiltered Recommendations for User {user_id} by Genre '{genre_filter}':\n{', '.join(filtered_titles)}")
@@ -111,3 +142,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

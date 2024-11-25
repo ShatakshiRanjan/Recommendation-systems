@@ -66,9 +66,6 @@ hybrid_predictions = predict_ratings_hybrid(collaborative_predictions, mean_pred
 # Generate Top-N Recommendations
 # --------------------------------------------------------------------------------
 def create_recommendations(predicted_ratings_df, train_df, top_n=10):
-    """
-    Generate top-N recommendations for each user.
-    """
     recommendations = {}
     for user in predicted_ratings_df.index:
         # Get items the user has not rated in the training set
@@ -85,19 +82,12 @@ def create_recommendations(predicted_ratings_df, train_df, top_n=10):
 
 recommendations = create_recommendations(hybrid_predictions, train_df)
 
-# --------------------------------------------------------------------------------
-# Evaluate Recommendations
-# --------------------------------------------------------------------------------
 def evaluate_recommendations(recommendations, test_df, top_n=10):
-    """
-    Evaluate recommendations using Precision, Recall, and NDCG.
-    """
     precision_list = []
     recall_list = []
     ndcg_list = []
 
     for user, recommended_items in recommendations.items():
-        # Get the actual items in the test set for this user
         relevant_items = test_df[test_df['userId'] == user]['movieId'].values
         
         # Calculate Precision and Recall
@@ -122,14 +112,8 @@ def evaluate_recommendations(recommendations, test_df, top_n=10):
 
     return avg_precision, avg_recall, avg_f_measure, avg_ndcg
 
-# --------------------------------------------------------------------------------
-# Evaluate the Recommendations
-# --------------------------------------------------------------------------------
 precision, recall, f_measure, ndcg = evaluate_recommendations(recommendations, test_df)
 
-# --------------------------------------------------------------------------------
-# Print Results
-# --------------------------------------------------------------------------------
 print(f"Precision: {precision:.4f}")
 print(f"Recall: {recall:.4f}")
 print(f"F-measure: {f_measure:.4f}")

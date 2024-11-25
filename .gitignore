@@ -2,6 +2,7 @@
 \ml-latest
 *.csv
 *.npy
+*.txt
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
