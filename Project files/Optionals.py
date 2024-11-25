@@ -143,8 +143,7 @@ def main():
         print("2. Fairness and Unbiases")
         print("3. Controllability")
         print("4. Privacy Protection")
-        print("5. Robustness and Anti-attacks for Recommender Systems")
-        print("6. Exit")
+        print("5. Exit")
         choice = input("Enter your choice (1-6): ")
 
         if choice == "1":
@@ -182,7 +181,7 @@ def main():
 
             save_recommendations_to_file(recommendations, movies_df)
 
-        elif choice == "6":
+        elif choice == "5":
             print("Exiting the program.")
             break
         else:
