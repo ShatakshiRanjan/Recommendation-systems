@@ -16,18 +16,12 @@ RatingMoviesComb = pd.merge(ratings, movies, on='movieId', how='left')
 tagsAggregated = tags.groupby('movieId')['tag'].apply(lambda x: ' '.join(x)).reset_index()
 TagsRatingComb = pd.merge(RatingMoviesComb, tagsAggregated, on='movieId', how='left')
 ratingMerge = pd.merge(TagsRatingComb, links[['movieId', 'imdbId']], on='movieId', how='left')
-
-# Split genres into binary columns
 splitGenre = ratingMerge['genres'].str.get_dummies(sep='|')
 ratingMerge = pd.concat([ratingMerge, splitGenre], axis=1)
-
-# Drop NaN values in critical columns
 ratingMerge.dropna(subset=['rating', 'movieId'], inplace=True)
 
-# Group by userId and split into training and testing sets
 trainList = []
 testList = []
-
 for _, userData in ratingMerge.groupby('userId'):
     train, test = train_test_split(userData, test_size=0.2, random_state=42)
     trainList.append(train)

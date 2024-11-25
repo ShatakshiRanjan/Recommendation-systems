@@ -2,70 +2,57 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Load training and testing data
 train_df = pd.read_csv('trainData.csv')
 test_df = pd.read_csv('testData.csv')
-user_item_matrix = train_df.pivot_table(index='userId', columns='movieId', values='rating')
+UserItemMatrix = train_df.pivot_table(index='userId', columns='movieId', values='rating')
 
 # --------------------------------------------------------------------------------
 # Collaborative Filtering (Item-Item Similarity)
 # --------------------------------------------------------------------------------
-def compute_item_similarity(user_item_matrix, similarity_threshold=0.1):
-    """
-    Compute item-item similarity using cosine similarity and apply a threshold.
-    """
-    matrix = user_item_matrix.fillna(0).values  # Replace NaN with 0 for similarity computation
-    similarity = cosine_similarity(matrix.T)  # Compute similarity between items
-    np.fill_diagonal(similarity, 0)  # Avoid self-similarity
-    similarity[similarity < similarity_threshold] = 0  # Apply threshold
-    return pd.DataFrame(similarity, index=user_item_matrix.columns, columns=user_item_matrix.columns)
+def itemSimilarity(UserItemMatrix, similarity_threshold=0.1):
+    matrix = UserItemMatrix.fillna(0).values  
+    similarity = cosine_similarity(matrix.T) 
+    np.fill_diagonal(similarity, 0)  
+    similarity[similarity < similarity_threshold] = 0  
+    return pd.DataFrame(similarity, index=UserItemMatrix.columns, columns=UserItemMatrix.columns)
 
-item_similarity = compute_item_similarity(user_item_matrix, similarity_threshold=0.2)
+item_similarity = itemSimilarity(UserItemMatrix, similarity_threshold=0.2)
 
-def predict_ratings_collaborative(user_item_matrix, item_similarity):
-    """
-    Predict ratings using collaborative filtering.
-    """
-    user_item_filled = user_item_matrix.fillna(0).values
+def collaborativeRatingPredict(UserItemMatrix, item_similarity):
+    user_item_filled = UserItemMatrix.fillna(0).values
     numerator = np.dot(user_item_filled, item_similarity.values)
     denominator = np.abs(item_similarity.values).sum(axis=1)
     denominator[denominator == 0] = 1  # Avoid division by zero
     predictions = numerator / denominator
-    return pd.DataFrame(predictions, index=user_item_matrix.index, columns=user_item_matrix.columns)
+    return pd.DataFrame(predictions, index=UserItemMatrix.index, columns=UserItemMatrix.columns)
 
-collaborative_predictions = predict_ratings_collaborative(user_item_matrix, item_similarity)
+collaborative_predictions = collaborativeRatingPredict(UserItemMatrix, item_similarity)
 
 # --------------------------------------------------------------------------------
 # User-Specific Average Predictions
 # --------------------------------------------------------------------------------
-user_mean_ratings = user_item_matrix.mean(axis=1)
+user_mean_ratings = UserItemMatrix.mean(axis=1)
 
-def predict_ratings_user_mean(user_item_matrix, user_mean_ratings):
-    """
-    Predict ratings using user-specific averages.
-    """
-    predictions = user_item_matrix.apply(
+def meanUserRatings(UserItemMatrix, user_mean_ratings):
+    predictions = UserItemMatrix.apply(
         lambda row: row.fillna(user_mean_ratings[row.name]), axis=1
     )
     return predictions
 
-mean_predictions = predict_ratings_user_mean(user_item_matrix, user_mean_ratings)
+mean_predictions = meanUserRatings(UserItemMatrix, user_mean_ratings)
 
 # --------------------------------------------------------------------------------
 # Hybrid Predictions (Blend Collaborative & User Averages)
 # --------------------------------------------------------------------------------
-def predict_ratings_hybrid(collaborative_predictions, mean_predictions, alpha=0.8, beta=0.2):
-    """
-    Blend collaborative filtering predictions with user-specific averages.
-    """
+def ratingHybrid(collaborative_predictions, mean_predictions, alpha=0.8, beta=0.2):
     return alpha * collaborative_predictions + beta * mean_predictions
 
-hybrid_predictions = predict_ratings_hybrid(collaborative_predictions, mean_predictions, alpha=0.85, beta=0.15)
+hybrid_predictions = ratingHybrid(collaborative_predictions, mean_predictions, alpha=0.85, beta=0.15)
 
 # --------------------------------------------------------------------------------
 # Generate Top-N Recommendations
 # --------------------------------------------------------------------------------
-def create_recommendations(predicted_ratings_df, train_df, top_n=10):
+def createReccs(predicted_ratings_df, train_df, top_n=10):
     recommendations = {}
     for user in predicted_ratings_df.index:
         # Get items the user has not rated in the training set
@@ -76,13 +63,13 @@ def create_recommendations(predicted_ratings_df, train_df, top_n=10):
         predictions = predicted_ratings_df.loc[user, unrated_items]
         
         # Rank items by predicted ratings and get the top N
-        top_items = predictions.nlargest(top_n).index.tolist()
-        recommendations[user] = top_items
+        topPicks = predictions.nlargest(top_n).index.tolist()
+        recommendations[user] = topPicks
     return recommendations
 
-recommendations = create_recommendations(hybrid_predictions, train_df)
+recommendations = createReccs(hybrid_predictions, train_df)
 
-def evaluate_recommendations(recommendations, test_df, top_n=10):
+def evalReccs(recommendations, test_df, top_n=10):
     precision_list = []
     recall_list = []
     ndcg_list = []
@@ -112,7 +99,7 @@ def evaluate_recommendations(recommendations, test_df, top_n=10):
 
     return avg_precision, avg_recall, avg_f_measure, avg_ndcg
 
-precision, recall, f_measure, ndcg = evaluate_recommendations(recommendations, test_df)
+precision, recall, f_measure, ndcg = evalReccs(recommendations, test_df)
 
 print(f"Precision: {precision:.4f}")
 print(f"Recall: {recall:.4f}")

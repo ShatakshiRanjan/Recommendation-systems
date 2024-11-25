@@ -2,19 +2,15 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-# Load training and testing datasets
 train_df = pd.read_csv('trainData.csv')
 test_df = pd.read_csv('testData.csv')
+UserItemMatrix = train_df.pivot_table(index='userId', columns='movieId', values='rating')
 
-# Pivot training data into a user-item matrix
-user_item_matrix = train_df.pivot_table(index='userId', columns='movieId', values='rating')
-
-# Normalize user-item matrix by subtracting user mean
-user_mean_ratings = user_item_matrix.mean(axis=1)
-user_item_matrix_normalized = user_item_matrix.sub(user_mean_ratings, axis=0)
+userMean = UserItemMatrix.mean(axis=1)
+UserItemMatrix_normalized = UserItemMatrix.sub(userMean, axis=0)
 
 # Compute Pearson similarity
-def pearson_similarity(matrix):
+def similarityPerson(matrix):
     matrix = np.nan_to_num(matrix)
     mean_centered = matrix - matrix.mean(axis=0, keepdims=True)
     norm_matrix = np.linalg.norm(mean_centered, axis=0)
@@ -23,34 +19,26 @@ def pearson_similarity(matrix):
     np.fill_diagonal(similarity, 0)
     return similarity
 
-item_similarity = pearson_similarity(user_item_matrix_normalized.values)
-
-# Apply dynamic threshold
-threshold = np.percentile(item_similarity[item_similarity > 0], 25)  # Set threshold as 25th percentile
-item_similarity[item_similarity < threshold] = 0
-
-# Save item similarity matrix
-np.save('itemSimilarity.npy', item_similarity)
+similarityItem = similarityPerson(UserItemMatrix_normalized.values)
+threshold = np.percentile(similarityItem[similarityItem > 0], 25)  # Set threshold as 25th percentile
+similarityItem[similarityItem < threshold] = 0
+np.save('itemSimilarity.npy', similarityItem)
 
 # Predict ratings
-def predict_ratings(user_item_matrix_normalized, similarity_matrix):
-    user_item_matrix = np.nan_to_num(user_item_matrix_normalized)
-    numerator = np.dot(user_item_matrix, similarity_matrix)
-    denominator = np.abs(similarity_matrix).sum(axis=1)
-    denominator[denominator == 0] = 1
-    return numerator / denominator
+def ratingPrediction(UserItemMatrix_normalized, similarity_matrix):
+    UserItemMatrix = np.nan_to_num(UserItemMatrix_normalized)
+    num = np.dot(UserItemMatrix, similarity_matrix)
+    denom = np.abs(similarity_matrix).sum(axis=1)
+    denom[denom == 0] = 1
+    return num / denom
 
-predicted_ratings_matrix = predict_ratings(user_item_matrix_normalized.values, item_similarity)
+ratingPredMatrix = ratingPrediction(UserItemMatrix_normalized.values, similarityItem)
 
-# Denormalize predicted ratings
-predicted_ratings_matrix = predicted_ratings_matrix + user_mean_ratings.values[:, None]
-predicted_ratings_df = pd.DataFrame(predicted_ratings_matrix, index=user_item_matrix.index, columns=user_item_matrix.columns)
+ratingPredMatrix = ratingPredMatrix + userMean.values[:, None]
+predicted_ratings_df = pd.DataFrame(ratingPredMatrix, index=UserItemMatrix.index, columns=UserItemMatrix.columns)
 
-# Save predicted ratings
 predicted_ratings_df.to_csv('ratingPrediction.csv', index=True)
-
-# Evaluate predictions
-def evaluate_predictions(test_df, predicted_ratings_df):
+def evaluatePrediction(test_df, predicted_ratings_df):
     predictions = []
     actuals = []
     global_mean = train_df['rating'].mean()
@@ -73,6 +61,6 @@ def evaluate_predictions(test_df, predicted_ratings_df):
     rmse = np.sqrt(mean_squared_error(actuals, predictions))
     return mae, rmse
 
-mae, rmse = evaluate_predictions(test_df, predicted_ratings_df)
+mae, rmse = evaluatePrediction(test_df, predicted_ratings_df)
 print(f"MAE: {mae:.4f}")
 print(f"RMSE: {rmse:.4f}")
