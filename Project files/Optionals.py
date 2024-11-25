@@ -39,16 +39,25 @@ def create_recommendations(predicted_ratings_df, train_df, top_n=10):
 predicted_ratings_matrix = user_item_matrix.fillna(0).dot(item_similarity)
 recommendations = create_recommendations(predicted_ratings_matrix, train_df)
 
+# Save recommendations to a text file
+def save_recommendations_to_file(recommendations, movies_df, file_name="recommendations.txt"):
+    """
+    Save user recommendations to a text file.
+    """
+    with open(file_name, "w") as file:
+        file.write("User Recommendations:\n")
+        for user, movie_ids in recommendations.items():
+            movie_titles = movies_df[movies_df['movieId'].isin(movie_ids)]['title'].tolist()
+            file.write(f"User {user}:\n")
+            file.write(f"  Recommended Movies: {', '.join(movie_titles)}\n\n")
+    print(f"Recommendations have been saved to {file_name}.")
+
 # Fairness: Genre Diversity
 def genre_diversity(recommendations, movies_df):
-    """
-    Calculate the genre diversity of the recommendations for each user.
-    """
     diversity = {}
     for user, recs in recommendations.items():
-        # Extract genres for recommended movies
         genres = movies_df[movies_df['movieId'].isin(recs)]['genres'].dropna().str.split('|').explode()
-        diversity[user] = genres.value_counts().to_dict()  # Count occurrences of each genre
+        diversity[user] = genres.value_counts().to_dict()
     return diversity
 
 # Save genre diversity to a text file
@@ -89,6 +98,22 @@ def explain_recommendation(user_id, movie_id, train_df, item_similarity, movies_
         return (f"Movie {movie_id} is recommended based on its genres '{movie_genres}' "
                 "and your overall rating patterns.")
 
+# Privacy Protection: Anonymize data
+def anonymize_data(movies_df, train_df, user_ids_to_anonymize=None):
+    anonymized_movies = movies_df.copy()
+    anonymized_movies['title'] = anonymized_movies['movieId']
+    
+    anonymized_train = train_df.copy()
+    if user_ids_to_anonymize:
+        unique_users = user_ids_to_anonymize
+    else:
+        unique_users = anonymized_train['userId'].unique()
+    
+    user_id_mapping = {user_id: f"User_{i}" for i, user_id in enumerate(unique_users, start=1)}
+    anonymized_train['userId'] = anonymized_train['userId'].map(user_id_mapping)
+    
+    return anonymized_movies, anonymized_train, user_id_mapping
+
 # Filter recommendations by genre
 def filter_recommendations_by_genre(user_id, recommendations, genre_filter, movies_df):
     filtered_recommendations = []
@@ -101,6 +126,15 @@ def filter_recommendations_by_genre(user_id, recommendations, genre_filter, movi
                 filtered_recommendations.append(movie_id)
     return filtered_recommendations
 
+# Save anonymized data to a text file
+def save_anonymized_data(anonymized_movies, anonymized_train, file_name="anonymized_data.txt"):
+    with open(file_name, "w") as file:
+        file.write("Anonymized Movies Data:\n")
+        file.write(anonymized_movies[['movieId', 'title']].to_string(index=False))
+        file.write("\n\nAnonymized Training Data:\n")
+        file.write(anonymized_train.to_string(index=False))
+    print(f"Anonymized data has been saved to {file_name}.")
+
 # Main menu for optional tasks
 def main():
     while True:
@@ -109,7 +143,7 @@ def main():
         print("2. Fairness and Unbiases")
         print("3. Controllability")
         print("4. Privacy Protection")
-        print("5. Robustness and Anti-attacks")
+        print("5. Robustness and Anti-attacks for Recommender Systems")
         print("6. Exit")
         choice = input("Enter your choice (1-6): ")
 
@@ -120,7 +154,6 @@ def main():
             print("\nExplanation:\n", explanation)
 
         elif choice == "2":
-            # Compute genre diversity for the recommendations
             diversity = genre_diversity(recommendations, movies_df)
             save_genre_diversity_to_file(diversity)
 
@@ -134,6 +167,21 @@ def main():
             else:
                 print(f"\nNo recommendations found for User {user_id} in Genre '{genre_filter}'.")
 
+        elif choice == "4":
+            user_ids_to_anonymize = input("Enter user IDs to anonymize (comma-separated) or press Enter to anonymize all: ")
+            if user_ids_to_anonymize:
+                user_ids_to_anonymize = list(map(int, user_ids_to_anonymize.split(',')))
+            else:
+                user_ids_to_anonymize = None
+            
+            anonymized_movies, anonymized_train, user_id_mapping = anonymize_data(movies_df, train_df, user_ids_to_anonymize)
+            save_anonymized_data(anonymized_movies, anonymized_train)
+            print("\nAnonymization completed. User ID mapping:")
+            for original, anonymized in user_id_mapping.items():
+                print(f"  Original User ID: {original} -> Anonymized User ID: {anonymized}")
+
+            save_recommendations_to_file(recommendations, movies_df)
+
         elif choice == "6":
             print("Exiting the program.")
             break
@@ -142,4 +190,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
