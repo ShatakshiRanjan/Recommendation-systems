@@ -35,10 +35,10 @@ def ratingPrediction(UserItemMatrix_normalized, similarity_matrix):
 ratingPredMatrix = ratingPrediction(UserItemMatrix_normalized.values, similarityItem)
 
 ratingPredMatrix = ratingPredMatrix + userMean.values[:, None]
-predicted_ratings_df = pd.DataFrame(ratingPredMatrix, index=UserItemMatrix.index, columns=UserItemMatrix.columns)
+predictedRatings_df = pd.DataFrame(ratingPredMatrix, index=UserItemMatrix.index, columns=UserItemMatrix.columns)
 
-predicted_ratings_df.to_csv('ratingPrediction.csv', index=True)
-def evaluatePrediction(test_df, predicted_ratings_df):
+predictedRatings_df.to_csv('ratingPrediction.csv', index=True)
+def evaluatePrediction(test_df, predictedRatings_df):
     predictions = []
     actuals = []
     global_mean = train_df['rating'].mean()
@@ -48,8 +48,8 @@ def evaluatePrediction(test_df, predicted_ratings_df):
         movie = row['movieId']
         actual = row['rating']
         
-        if user in predicted_ratings_df.index and movie in predicted_ratings_df.columns:
-            predicted = predicted_ratings_df.loc[user, movie]
+        if user in predictedRatings_df.index and movie in predictedRatings_df.columns:
+            predicted = predictedRatings_df.loc[user, movie]
             predicted = predicted if not np.isnan(predicted) else global_mean
         else:
             predicted = global_mean
@@ -61,6 +61,6 @@ def evaluatePrediction(test_df, predicted_ratings_df):
     rmse = np.sqrt(mean_squared_error(actuals, predictions))
     return mae, rmse
 
-mae, rmse = evaluatePrediction(test_df, predicted_ratings_df)
+mae, rmse = evaluatePrediction(test_df, predictedRatings_df)
 print(f"MAE: {mae:.4f}")
 print(f"RMSE: {rmse:.4f}")
