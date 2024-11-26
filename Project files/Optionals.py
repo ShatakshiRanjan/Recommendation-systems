@@ -2,32 +2,28 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Load datasets
 train_df = pd.read_csv('trainData.csv')
 test_df = pd.read_csv('testData.csv')
 moviesCSV = './ml-latest-small/movies.csv'
 movies_df = pd.read_csv(moviesCSV)
-
-# Generate user-item matrix
-user_item_matrix = train_df.pivot_table(index='userId', columns='movieId', values='rating')
+userItemMatrix = train_df.pivot_table(index='userId', columns='movieId', values='rating')
 
 # Function to compute item similarity
-def compute_item_similarity(user_item_matrix):
-    matrix = user_item_matrix.fillna(0).values
+def ItemSimilarity(userItemMatrix):
+    matrix = userItemMatrix.fillna(0).values
     similarity = cosine_similarity(matrix.T)
     np.fill_diagonal(similarity, 0)
-    return pd.DataFrame(similarity, index=user_item_matrix.columns, columns=user_item_matrix.columns)
+    return pd.DataFrame(similarity, index=userItemMatrix.columns, columns=userItemMatrix.columns)
 
-# Compute item similarity
-item_similarity = compute_item_similarity(user_item_matrix)
+item_similarity = ItemSimilarity(userItemMatrix)
 
 # Generate recommendations
-def create_recommendations(predicted_ratings_df, train_df, top_n=10):
+def genRecommendation(predicted_ratings_df, train_df, top_n=10):
     recommendations = {}
     for user in predicted_ratings_df.index:
-        rated_items = train_df[train_df['userId'] == user]['movieId'].values
-        unrated_items = [item for item in predicted_ratings_df.columns if item not in rated_items]
-        predictions = predicted_ratings_df.loc[user, unrated_items]
+        ratedItems = train_df[train_df['userId'] == user]['movieId'].values
+        unratedItems = [item for item in predicted_ratings_df.columns if item not in ratedItems]
+        predictions = predicted_ratings_df.loc[user, unratedItems]
         if not predictions.empty:
             top_items = predictions.nlargest(top_n).index.tolist()
             recommendations[user] = top_items
@@ -35,12 +31,10 @@ def create_recommendations(predicted_ratings_df, train_df, top_n=10):
             recommendations[user] = []
     return recommendations
 
-# Generate recommendations for the user
-predicted_ratings_matrix = user_item_matrix.fillna(0).dot(item_similarity)
-recommendations = create_recommendations(predicted_ratings_matrix, train_df)
+predRatingMatrix = userItemMatrix.fillna(0).dot(item_similarity)
+recommendations = genRecommendation(predRatingMatrix, train_df)
 
-# Save recommendations to a text file
-def save_recommendations_to_file(recommendations, movies_df, file_name="recommendations.txt"):
+def recommendationToFile(recommendations, movies_df, file_name="recommendations.txt"):
     """
     Save user recommendations to a text file.
     """
@@ -60,8 +54,7 @@ def genre_diversity(recommendations, movies_df):
         diversity[user] = genres.value_counts().to_dict()
     return diversity
 
-# Save genre diversity to a text file
-def save_genre_diversity_to_file(diversity, file_name="genre_diversity.txt"):
+def genreToFile(diversity, file_name="genre_diversity.txt"):
     with open(file_name, "w") as file:
         file.write("Genre Diversity of Recommendations:\n")
         for user, genres in diversity.items():
@@ -72,7 +65,7 @@ def save_genre_diversity_to_file(diversity, file_name="genre_diversity.txt"):
     print(f"Genre diversity has been saved to {file_name}.")
 
 # Explanation function
-def explain_recommendation(user_id, movie_id, train_df, item_similarity, movies_df):
+def explainReccs(user_id, movie_id, train_df, item_similarity, movies_df):
     movie_row = movies_df[movies_df['movieId'] == movie_id]
     if movie_row.empty:
         return f"Movie {movie_id} is not found in the dataset."
@@ -81,16 +74,16 @@ def explain_recommendation(user_id, movie_id, train_df, item_similarity, movies_
     user_ratings = train_df[train_df['userId'] == user_id]
     user_rated_movies = user_ratings[user_ratings['rating'] >= 4.0]['movieId'].values
 
-    similar_movies = []
+    similarRating = []
     for rated_movie in user_rated_movies:
         if rated_movie in item_similarity.columns and movie_id in item_similarity.index:
             similarity_score = item_similarity.loc[movie_id, rated_movie]
             if similarity_score > 0:
-                similar_movies.append((rated_movie, similarity_score))
+                similarRating.append((rated_movie, similarity_score))
 
-    similar_movies = sorted(similar_movies, key=lambda x: x[1], reverse=True)
-    if similar_movies:
-        similar_movie_ids = [sm[0] for sm in similar_movies[:3]]
+    similarRating = sorted(similarRating, key=lambda x: x[1], reverse=True)
+    if similarRating:
+        similar_movie_ids = [sm[0] for sm in similarRating[:3]]
         similar_movie_titles = movies_df[movies_df['movieId'].isin(similar_movie_ids)]['title'].tolist()
         return (f"Movie {movie_id} is recommended because it shares the genres '{movie_genres}' "
                 f"with movies you rated highly (e.g., {', '.join(similar_movie_titles)}).")
@@ -115,7 +108,7 @@ def anonymize_data(movies_df, train_df, user_ids_to_anonymize=None):
     return anonymized_movies, anonymized_train, user_id_mapping
 
 # Filter recommendations by genre
-def filter_recommendations_by_genre(user_id, recommendations, genre_filter, movies_df):
+def filterByGenre(user_id, recommendations, genre_filter, movies_df):
     filtered_recommendations = []
     recommended_movies = recommendations.get(user_id, [])
     for movie_id in recommended_movies:
@@ -127,7 +120,7 @@ def filter_recommendations_by_genre(user_id, recommendations, genre_filter, movi
     return filtered_recommendations
 
 # Save anonymized data to a text file
-def save_anonymized_data(anonymized_movies, anonymized_train, file_name="anonymized_data.txt"):
+def saveAnonData(anonymized_movies, anonymized_train, file_name="anonymized_data.txt"):
     with open(file_name, "w") as file:
         file.write("Anonymized Movies Data:\n")
         file.write(anonymized_movies[['movieId', 'title']].to_string(index=False))
@@ -149,17 +142,17 @@ def main():
         if choice == "1":
             user_id = int(input("Enter user ID: "))
             movie_id = int(input("Enter movie ID: "))
-            explanation = explain_recommendation(user_id, movie_id, train_df, item_similarity, movies_df)
+            explanation = explainReccs(user_id, movie_id, train_df, item_similarity, movies_df)
             print("\nExplanation:\n", explanation)
 
         elif choice == "2":
             diversity = genre_diversity(recommendations, movies_df)
-            save_genre_diversity_to_file(diversity)
+            genreToFile(diversity)
 
         elif choice == "3":
             user_id = int(input("Enter user ID: "))
             genre_filter = input("Enter genre to filter (e.g., Comedy, Action): ").strip()
-            filtered_recs = filter_recommendations_by_genre(user_id, recommendations, genre_filter, movies_df)
+            filtered_recs = filterByGenre(user_id, recommendations, genre_filter, movies_df)
             if filtered_recs:
                 filtered_titles = movies_df[movies_df['movieId'].isin(filtered_recs)]['title'].tolist()
                 print(f"\nFiltered Recommendations for User {user_id} by Genre '{genre_filter}':\n{', '.join(filtered_titles)}")
@@ -174,12 +167,12 @@ def main():
                 user_ids_to_anonymize = None
             
             anonymized_movies, anonymized_train, user_id_mapping = anonymize_data(movies_df, train_df, user_ids_to_anonymize)
-            save_anonymized_data(anonymized_movies, anonymized_train)
+            saveAnonData(anonymized_movies, anonymized_train)
             print("\nAnonymization completed. User ID mapping:")
             for original, anonymized in user_id_mapping.items():
                 print(f"  Original User ID: {original} -> Anonymized User ID: {anonymized}")
 
-            save_recommendations_to_file(recommendations, movies_df)
+            recommendationToFile(recommendations, movies_df)
 
         elif choice == "5":
             print("Exiting the program.")
