@@ -78,9 +78,9 @@ def evalReccs(recommendations, test_df, top_n=10):
         relevant_items = test_df[test_df['userId'] == user]['movieId'].values
         
         # Calculate Precision and Recall
-        relevant_recommended_items = [item for item in recommended_items if item in relevant_items]
-        precision = len(relevant_recommended_items) / top_n
-        recall = len(relevant_recommended_items) / len(relevant_items) if len(relevant_items) > 0 else 0
+        relevantItems = [item for item in recommended_items if item in relevant_items]
+        precision = len(relevantItems) / top_n
+        recall = len(relevantItems) / len(relevant_items) if len(relevant_items) > 0 else 0
         
         # Calculate NDCG
         dcg = sum(
