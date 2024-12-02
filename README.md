@@ -18,7 +18,7 @@ This project implements a collaborative filtering-based recommendation system us
 ### Step 1: Data Preprocessing
 Run the DataPreprocessing.py script to prepare the dataset:
 ```bash
-python DataPreprocessing.py
+python DataPreprocess.py
 ```
 Output:
 - train_ratings.csv: Processed training dataset
@@ -51,7 +51,7 @@ Output:
 ### Step 4: Optional Tasks
 Run the OptionalTasks.py script to analyze the recommendation system:
 ```bash
-python OptionalTasks.py
+python Optionals.py
 ```
 Features:
 - Explainability: Provides reasons for recommendations based on genres and tags.
